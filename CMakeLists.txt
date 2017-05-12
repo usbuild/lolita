@@ -17,3 +17,5 @@ ENDIF()
 FILE (GLOB src_files "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp" "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp" )
 
 ADD_EXECUTABLE (loli ${src_files})
+
+# test suite: http://www.inf.puc-rio.br/~roberto/lua/lua5.1-tests.tar.gz
