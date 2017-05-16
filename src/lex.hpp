@@ -1,7 +1,13 @@
 #pragma once
+#include "except.hpp"
 #include "feeder.hpp"
 #include "noncopyable.hpp"
 namespace lo {
+
+class LexError : public Error {
+   public:
+    DEFINE_EXCEPTION_CTOR(LexError);
+};
 
 class Lex {
    public:
@@ -48,6 +54,14 @@ class Lex {
 
    private:
     void newline() {}
+
+    void pushAndNext(std::string &value) {
+        value.push_back(feeder_.current());
+        feeder_.next();
+    }
+
+    std::string readString(char delim);
+    std::string readLongString(const std::string &delim);
 
    private:
     Feeder &feeder_;

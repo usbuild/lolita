@@ -13,7 +13,7 @@ class Feeder {
     virtual const std::string &name() const = 0;
     char current() const { return current_; }
 
-    std::pair<bool, std::string> readUntil(const std::string &delim);
+    std::pair<bool, std::string> readString(const std::string &delim);
 
    protected:
     char current_ = 0;
