@@ -23,6 +23,16 @@ Lex::Lex(Feeder& feeder) : feeder_(feeder) {
     }
 }
 
+std::string Lex::tokenToString(int token) {
+    if (token >= FIRST_RESERVED) {
+        return token_names[token - FIRST_RESERVED];
+    } else {
+        std::string ret;
+        ret.push_back(static_cast<char>(token));
+        return ret;
+    }
+}
+
 Lex::token_t Lex::nextToken() {
     while (true) {
         switch (feeder_.current()) {

@@ -4,29 +4,50 @@
 #include "lex.hpp"
 #include "noncopyable.hpp"
 namespace lo {
+class ParserError : public Error {
+   public:
+    DEFINE_EXCEPTION_CTOR(ParserError);
+};
+
+typedef enum BinOpr {
+    OPR_ADD,
+    OPR_SUB,
+    OPR_MUL,
+    OPR_DIV,
+    OPR_MOD,
+    OPR_POW,
+    OPR_CONCAT,
+    OPR_NE,
+    OPR_EQ,
+    OPR_LT,
+    OPR_LE,
+    OPR_GT,
+    OPR_GE,
+    OPR_AND,
+    OPR_OR,
+    OPR_NOBINOPR
+} BinOpr;
+
+typedef enum UnOpr { OPR_MINUS, OPR_NOT, OPR_LEN, OPR_NOUNOPR } UnOpr;
+
 class Parser {
    public:
-    Parser(Feeder& feeder) : lex_(feeder) {}
-    int parse() {
-        std::string str;
-        Lex::token_t token;
-        while (true) {
-            try {
-                token = lex_.nextToken();
-            } catch (const LexError& err) {
-                puts(err.what());
-                return 1;
-            }
-            if (token.first == Lex::EOS) {
-                return 0;
-            } else {
-                printf("%d %s \n", token.first, token.second.c_str());
-            }
-        }
-        return 0;
-    }
+    Parser(Feeder& feeder);
+    int parse();
+
+   private:
+    void chunk();
+    void next();
+    void statement();
+    void condThen();
+    void cond();
+
+    void expr();
+    BinOpr subexpr(int limit);
+    void simpleexp();
 
    private:
     Lex lex_;
+    Lex::token_t token_;
 };
 } /* lo */

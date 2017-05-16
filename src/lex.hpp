@@ -53,6 +53,8 @@ class Lex {
 
     token_t nextToken();
 
+    static std::string tokenToString(int token);
+
    private:
     void newline() {}
 

@@ -21,8 +21,13 @@ int LuaState::loadFile(const std::string &filename) {
 }
 
 int LuaState::loadFeeder(Feeder &&feeder) {
-    Parser parser(feeder);
-    return parser.parse();
+    try {
+        Parser parser(feeder);
+        return parser.parse();
+    } catch (const Error &err) {
+        fprintf(stderr, "%s\n", err.what());
+        return 1;
+    }
 }
 
 } /* lo */
