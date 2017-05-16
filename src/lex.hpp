@@ -2,18 +2,52 @@
 #include "feeder.hpp"
 #include "noncopyable.hpp"
 namespace lo {
+
 class Lex {
    public:
-    Lex(Feeder &feeder) : feeder_(feeder) {}
+    enum token_type {
+        AND = 256,
+        BREAK,
+        DO,
+        ELSE,
+        ELSEIF,
+        END,
+        FALSE,
+        FOR,
+        FUNCTION,
+        IF,
+        IN,
+        LOCAL,
+        NIL,
+        NOT,
+        OR,
+        REPEAT,
+        RETURN,
+        THEN,
+        TRUE,
+        UNTIL,
+        WHILE,
+        CONCAT,
+        DOTS,
+        EQ,
+        GE,
+        LE,
+        NE,
+        NUMBER,
+        NAME,
+        STRING,
+        EOS
+    };
 
-    std::string next() {
-        char c = feeder_.next();
-        if (c) {
-            return std::string(&c, 1);
-        } else {
-            return "";
-        }
-    }
+    typedef std::pair<int, std::string> token_t;
+
+   public:
+    Lex(Feeder &feeder) : feeder_(feeder) { feeder_.next(); }
+
+    token_t nextToken();
+
+   private:
+    void newline() {}
 
    private:
     Feeder &feeder_;

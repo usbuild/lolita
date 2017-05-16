@@ -5,8 +5,18 @@ namespace lo {
 class Feeder {
    public:
     virtual ~Feeder() {}
-    virtual char next() = 0;
+    char next() {
+        current_ = nextImpl();
+        return current_;
+    }
+    virtual char nextImpl() = 0;
     virtual const std::string &name() const = 0;
+    char current() const { return current_; }
+
+    std::pair<bool, std::string> readUntil(const std::string &delim);
+
+   protected:
+    char current_ = 0;
 };
 
 class FileFeeder : public Feeder {
@@ -16,7 +26,7 @@ class FileFeeder : public Feeder {
 
     const std::string &name() const { return filename_; }
 
-    char next() {
+    char nextImpl() {
         char c = file_.get();
         if (file_.eof()) {
             return 0;
@@ -35,7 +45,7 @@ class MemoryFeeder : public Feeder {
     MemoryFeeder(const lo::Slice &input, const lo::Slice &source)
         : data_(input.str()), source_(source.str()) {}
 
-    char next() {
+    char nextImpl() {
         if (pos_ == data_.size()) {
             return 0;
         } else {
