@@ -30,6 +30,10 @@ typedef enum BinOpr {
 
 typedef enum UnOpr { OPR_MINUS, OPR_NOT, OPR_LEN, OPR_NOUNOPR } UnOpr;
 
+struct Block {
+    Block* parent = nullptr;
+};
+
 class Parser {
    public:
     Parser(Feeder& feeder);
@@ -53,7 +57,7 @@ class Parser {
     void body();
     void constructor();
 
-    //stats
+    // stats
     void ifstat();
     void whilestat();
     void forstat();
@@ -65,8 +69,13 @@ class Parser {
     void localfunc();
     void localstat();
 
+    void enterBlock();
+    void leaveBlock();
+
    private:
     Lex lex_;
     Lex::token_t token_;
+    Block block_;
+    Block* current_block_ = &block_;
 };
 } /* lo */

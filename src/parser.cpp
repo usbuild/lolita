@@ -228,7 +228,11 @@ void Parser::ifstat() {
     next();
 }
 
-void Parser::block() { chunk(); }
+void Parser::block() {
+    enterBlock();
+    chunk();
+    leaveBlock();
+}
 
 void Parser::whilestat() {
     next();
@@ -326,9 +330,16 @@ bool Parser::statement() {
     }
 }
 
+void Parser::enterBlock() {
+}
+
+void Parser::leaveBlock() {
+}
+
 int Parser::parse() {
     next();
-    chunk();
+
+    block();
     if (token_.first != Lex::EOS) throw ParserError("additional text eof");
     return 0;
 }
