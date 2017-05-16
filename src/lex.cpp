@@ -1,22 +1,39 @@
 #include <limits>
+#include <map>
+#include <stdexcept>
 #include "lex.hpp"
 namespace lo {
 #define TK(x) token_t((x), "")
 
+const char* const token_names[] = {
+    "and",    "break",    "do",     "else", "elseif", "end",   "false",
+    "for",    "function", "if",     "in",   "local",  "nil",   "not",
+    "or",     "repeat",   "return", "then", "true",   "until", "while",
+    "..",     "...",      "==",     ">=",   "<=",     "~=",    "<number>",
+    "<name>", "<string>", "<eof>",  nullptr};
+
+static std::map<std::string, int> token_name_map_;
+
+Lex::Lex(Feeder& feeder) : feeder_(feeder) {
+    feeder_.next();
+    if (token_name_map_.empty()) {
+        for (int i = 0; token_names[i]; ++i) {
+            token_name_map_[token_names[i]] = FIRST_RESERVED + i;
+        }
+    }
+}
+
 Lex::token_t Lex::nextToken() {
-    std::string value;
     while (true) {
         switch (feeder_.current()) {
-            case 0: return TK(EOS);
+            case 0:
+                return TK(EOS);
             case '\r':
             case '\n':
                 newline();
             case ' ':
             case '\t': {
                 feeder_.next();
-                if (value.size() > 0) {
-                    return token_t(STRING, value);
-                }
                 break;
             }
             case '"':
@@ -52,6 +69,7 @@ Lex::token_t Lex::nextToken() {
             }
             case '-': {
                 feeder_.next();
+
                 if (feeder_.current() != '-') {
                     return TK('-');
                 }
@@ -124,16 +142,73 @@ Lex::token_t Lex::nextToken() {
                     return TK('.');
                 } else {
                     // handle number
-                    return TK(NUMBER);
+                    return token_t(NUMBER, readNumber("."));
                 }
             }
 
             default: {
-                value.push_back(feeder_.current());
-                feeder_.next();
+                if (isdigit(feeder_.current())) {
+                    return token_t(NUMBER, readNumber(""));
+                }
+                if (isalpha(feeder_.current()) || feeder_.current() == '_') {
+                    std::string data;
+                    do {
+                        data.push_back(feeder_.current());
+                        feeder_.next();
+                    } while (isalnum(feeder_.current()) ||
+                             feeder_.current() == '_');
+                    auto it = token_name_map_.find(data);
+                    if (it != token_name_map_.end()) {
+                        return TK(it->second);
+                    }
+                    return token_t(NAME, data);
+                } else {
+                    int c = feeder_.current();
+                    feeder_.next();
+                    return TK(c);
+                }
             }
         }
     }
+}
+
+std::string Lex::readNumber(const std::string& prefix) {
+    std::string data = prefix;
+    do {
+        data.push_back(feeder_.current());
+        feeder_.next();
+    } while (isdigit(feeder_.current()) || feeder_.current() == '.');
+
+    if (feeder_.current() == 'e' || feeder_.current() == 'E') {
+        data.push_back(feeder_.current());
+        feeder_.next();
+        if (feeder_.current() == '+' || feeder_.current() == '-') {
+            data.push_back(feeder_.current());
+            feeder_.next();
+        }
+    }
+
+    while (isalnum(feeder_.current())) {
+        data.push_back(feeder_.current());
+        feeder_.next();
+    }
+    bool succ = false;
+    double num;
+    try {
+        size_t pos;
+        num = stod(data, &pos);
+        if (pos == data.size()) {
+            succ = true;
+        }
+    } catch (const std::invalid_argument& ex) {
+    }
+    if (!succ) {
+        throw LexError("malformed number %s", data.c_str());
+    }
+
+    (void)(num);
+
+    return data;
 }
 
 std::string Lex::readString(char delim) {

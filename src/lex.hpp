@@ -11,8 +11,9 @@ class LexError : public Error {
 
 class Lex {
    public:
+    constexpr static int FIRST_RESERVED = 257;
     enum token_type {
-        AND = 256,
+        AND = FIRST_RESERVED,
         BREAK,
         DO,
         ELSE,
@@ -48,20 +49,17 @@ class Lex {
     typedef std::pair<int, std::string> token_t;
 
    public:
-    Lex(Feeder &feeder) : feeder_(feeder) { feeder_.next(); }
+    Lex(Feeder &feeder);
 
     token_t nextToken();
 
    private:
     void newline() {}
 
-    void pushAndNext(std::string &value) {
-        value.push_back(feeder_.current());
-        feeder_.next();
-    }
-
     std::string readString(char delim);
     std::string readLongString(const std::string &delim);
+
+    std::string readNumber(const std::string &prefix);
 
    private:
     Feeder &feeder_;
