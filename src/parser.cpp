@@ -1,11 +1,15 @@
 #include "parser.hpp"
 namespace lo {
 
-#define EXPECT(token)                                     \
-    {                                                     \
-        if (token_.first != token) {                      \
-            throw ParserError("expect symbol %d", token); \
-        }                                                 \
+#define EXPECT(token)                                                 \
+    {                                                                 \
+        if (token_.first != token) {                                  \
+            if (token >= Lex::AND)                                    \
+                throw ParserError("expect symbol %s",                 \
+                                  Lex::tokenToString(token).c_str()); \
+            else                                                      \
+                throw ParserError("expect symbol %c", token);         \
+        }                                                             \
     }
 
 static bool blockFollow(int token) {
@@ -85,8 +89,9 @@ static const std::pair<int, int> priority[] = {
 Parser::Parser(Feeder& feeder) : lex_(feeder) {}
 
 void Parser::chunk() {
-    while (!blockFollow(token_.first)) {
-        statement();
+    bool last = false;
+    while (!last && !blockFollow(token_.first)) {
+        last = statement();
     }
 }
 
@@ -198,24 +203,133 @@ BinOpr Parser::subexpr(int limit) {
 void Parser::condThen() {
     cond();
     EXPECT(Lex::THEN);
+    next();
+    block();
 }
 
-void Parser::statement() {
+void Parser::condDo() {
+    cond();
+    EXPECT(Lex::THEN);
+    next();
+    block();
+}
+
+void Parser::ifstat() {
+    next();
+    condThen();
+    while (token_.first == Lex::ELSEIF) {
+        condThen();
+    }
+    if (token_.first == Lex::ELSE) {
+        next();
+        block();
+    }
+    if (token_.first != Lex::END) throw ParserError("if end not match!");
+    next();
+}
+
+void Parser::block() { chunk(); }
+
+void Parser::whilestat() {
+    next();
+    condDo();
+}
+
+void Parser::forstat() {}
+
+void Parser::repeatstat() {
+    next();
+    block();
+    if (token_.first != Lex::UNTIL) throw ParserError("if end not match!");
+    next();
+    cond();
+}
+
+void Parser::retstat() {
+    next();
+    // TODO ret
+}
+
+void Parser::breakstat() { next(); }
+
+void Parser::funcstat() {
+    next();
+    funcargs();
+    body();
+}
+
+void Parser::exprstat() { primaryexp(); }
+
+void Parser::localfunc() {
+    next();
+    next();
+    funcargs();
+    body();
+}
+
+void Parser::localstat() {
+    next();
+    if (token_.first != Lex::NAME) throw ParserError("name for local expected");
+    next();
+    // TODO multi
+}
+
+bool Parser::statement() {
     switch (token_.first) {
         case Lex::IF: {
-            next();
-            condThen();
-            break;
+            ifstat();
+            return false;
         }
-        default:
+        case Lex::WHILE: {
+            whilestat();
+            return false;
+        }
+        case Lex::FOR: {
+            forstat();
+            return false;
+        }
+        case Lex::REPEAT: {
+            repeatstat();
+            return false;
+        }
+        case Lex::FUNCTION: {
+            funcstat();
+            return false;
+        }
+        case Lex::RETURN: {
+            retstat();
+            return true;
+        }
+        case Lex::BREAK: {
+            breakstat();
+            return false;
+        }
+        case Lex::LOCAL: {
             next();
-            break;
+            if (token_.first == Lex::FUNCTION) {
+                localfunc();
+            } else {
+                localstat();
+            }
+        }
+        case Lex::DO: {
+            next();
+            block();
+            if (token_.first != Lex::END)
+                throw ParserError("do end not match!");
+            next();
+        }
+        default: {
+            exprstat();
+            return false;
+        }
     }
 }
 
 int Parser::parse() {
     next();
     chunk();
+    if (token_.first != Lex::EOS) throw ParserError("additional text eof");
     return 0;
 }
 

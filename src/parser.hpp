@@ -36,10 +36,12 @@ class Parser {
     int parse();
 
    private:
+    void block();
     void chunk();
     void next();
-    void statement();
+    bool statement();
     void condThen();
+    void condDo();
     void cond();
 
     void expr();
@@ -50,6 +52,18 @@ class Parser {
     void funcargs();
     void body();
     void constructor();
+
+    //stats
+    void ifstat();
+    void whilestat();
+    void forstat();
+    void repeatstat();
+    void retstat();
+    void breakstat();
+    void funcstat();
+    void exprstat();
+    void localfunc();
+    void localstat();
 
    private:
     Lex lex_;
