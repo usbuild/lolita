@@ -45,6 +45,11 @@ class Parser {
     void expr();
     BinOpr subexpr(int limit);
     void simpleexp();
+    void primaryexp();
+    void prefixexp();
+    void funcargs();
+    void body();
+    void constructor();
 
    private:
     Lex lex_;

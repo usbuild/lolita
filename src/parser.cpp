@@ -94,7 +94,85 @@ void Parser::cond() { expr(); }
 
 void Parser::expr() { subexpr(0); }
 
-void Parser::simpleexp() { next(); }
+void Parser::prefixexp() {
+    switch (token_.first) {
+        case '(': {
+            next();
+            expr();
+            if (token_.first != ')') throw ParserError("() not match!");
+            next();
+            break;
+        }
+        case Lex::NAME: {
+            next();
+            break;
+        }
+        default: { throw ParserError("unexpected symbol %c", token_.first); }
+    }
+}
+
+void Parser::primaryexp() {
+    prefixexp();
+    while (true) {
+        switch (token_.first) {
+            case '[': {
+                next();
+                expr();
+                if (token_.first != ']') throw ParserError("[] not match!");
+                break;
+            }
+            case '.': {
+                next();
+                if (token_.first != Lex::NAME)
+                    throw ParserError("invalid dot symbol");
+                next();
+            }
+            case ':': {
+                next();
+                if (token_.first != Lex::NAME)
+                    throw ParserError("invalid dot symbol");
+                next();
+                break;
+            }
+            case '(':
+            case Lex::STRING:
+            case '{': {
+                funcargs();
+                break;
+            }
+            default:
+                return;
+        }
+    }
+}
+
+void Parser::funcargs() {}
+
+void Parser::body() {}
+
+void Parser::constructor() {}
+
+void Parser::simpleexp() {
+    switch (token_.first) {
+        case Lex::NUMBER:
+        case Lex::STRING:
+        case Lex::NIL:
+        case Lex::TRUE:
+        case Lex::FALSE:
+        case Lex::DOTS:
+            next();
+            break;
+        case '{': {
+            constructor();
+            break;
+        }
+        case Lex::FUNCTION: {
+            body();
+            break;
+        }
+        default: { primaryexp(); }
+    }
+}
 
 BinOpr Parser::subexpr(int limit) {
     UnOpr uop = getunopr(token_.first);
