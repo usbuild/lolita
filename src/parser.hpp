@@ -1,5 +1,7 @@
 #pragma once
 #include <stdio.h>
+#include <forward_list>
+#include <memory>
 #include "feeder.hpp"
 #include "lex.hpp"
 #include "noncopyable.hpp"
@@ -9,7 +11,37 @@ class ParserError : public Error {
     DEFINE_EXCEPTION_CTOR(ParserError);
 };
 
-typedef enum BinOpr {
+enum class ExpKind {
+    VVOID, /* no value */
+    VNIL,
+    VTRUE,
+    VFALSE,
+    VK,         /* info = index of constant in `k' */
+    VKNUM,      /* nval = numerical value */
+    VLOCAL,     /* info = local register */
+    VUPVAL,     /* info = index of upvalue in `upvalues' */
+    VGLOBAL,    /* info = index of table; aux = index of global name in `k' */
+    VINDEXED,   /* info = table register; aux = index register (or `k') */
+    VJMP,       /* info = instruction pc */
+    VRELOCABLE, /* info = instruction pc */
+    VNONRELOC,  /* info = result register */
+    VCALL,      /* info = instruction pc */
+    VVARARG     /* info = instruction pc */
+};
+
+struct ExpDesc {
+    ExpKind k;
+    union {
+        struct {
+            int info, aux;
+        } s;
+        double nval;
+    } u;
+    int t; /* patch list of `exit when true' */
+    int f; /* patch list of `exit when false' */
+};
+
+enum BinOpr {
     OPR_ADD,
     OPR_SUB,
     OPR_MUL,
@@ -26,17 +58,24 @@ typedef enum BinOpr {
     OPR_AND,
     OPR_OR,
     OPR_NOBINOPR
-} BinOpr;
+};
 
-typedef enum UnOpr { OPR_MINUS, OPR_NOT, OPR_LEN, OPR_NOUNOPR } UnOpr;
+enum UnOpr { OPR_MINUS, OPR_NOT, OPR_LEN, OPR_NOUNOPR };
 
 struct Block {
-    Block* parent = nullptr;
+    Block *parent = nullptr;
+};
+
+struct FuncState {
+    void enterBlock(Block &bl);
+    void leaveBlock();
+    Block *currentBl() { return bllist_.front(); }
+    std::forward_list<Block *> bllist_;
 };
 
 class Parser {
    public:
-    Parser(Feeder& feeder);
+    Parser(Feeder &feeder);
     int parse();
 
    private:
@@ -48,11 +87,11 @@ class Parser {
     void condDo();
     void cond();
 
-    void expr();
-    BinOpr subexpr(int limit);
-    void simpleexp();
-    void primaryexp();
-    void prefixexp();
+    void expr(ExpDesc &v);
+    BinOpr subexpr(ExpDesc &v, int limit);
+    void simpleexp(ExpDesc &v);
+    void primaryexp(ExpDesc &v);
+    void prefixexp(ExpDesc &v);
     void funcargs();
     void body();
     void constructor();
@@ -69,13 +108,15 @@ class Parser {
     void localfunc();
     void localstat();
 
-    void enterBlock();
-    void leaveBlock();
+    void openFunc();
+    void closeFunc();
+    FuncState *currentFunc();
 
    private:
     Lex lex_;
     Lex::token_t token_;
     Block block_;
-    Block* current_block_ = &block_;
+    Block *current_block_ = &block_;
+    std::forward_list<std::unique_ptr<FuncState>> fslist_;
 };
 } /* lo */

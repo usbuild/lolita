@@ -1,3 +1,4 @@
+#include "code.hpp"
 #include "parser.hpp"
 namespace lo {
 
@@ -75,6 +76,12 @@ static BinOpr getbinopr(int op) {
     }
 }
 
+void initExp(ExpDesc &e, ExpKind k, int i) {
+    e.f = e.t = NO_JUMP;
+    e.k = k;
+    e.u.s.info = i;
+}
+
 static const std::pair<int, int> priority[] = {
     /* ORDER OPR */
     {6, 6},  {6, 6}, {7, 7}, {7, 7}, {7, 7}, /* `+' `-' `/' `%' */
@@ -86,7 +93,7 @@ static const std::pair<int, int> priority[] = {
 
 #define UNARY_PRIORITY 8
 
-Parser::Parser(Feeder& feeder) : lex_(feeder) {}
+Parser::Parser(Feeder &feeder) : lex_(feeder) {}
 
 void Parser::chunk() {
     bool last = false;
@@ -95,15 +102,18 @@ void Parser::chunk() {
     }
 }
 
-void Parser::cond() { expr(); }
+void Parser::cond() {
+    ExpDesc v;
+    expr(v);
+}
 
-void Parser::expr() { subexpr(0); }
+void Parser::expr(ExpDesc &v) { subexpr(v, 0); }
 
-void Parser::prefixexp() {
+void Parser::prefixexp(ExpDesc &v) {
     switch (token_.first) {
         case '(': {
             next();
-            expr();
+            expr(v);
             if (token_.first != ')') throw ParserError("() not match!");
             next();
             break;
@@ -116,13 +126,13 @@ void Parser::prefixexp() {
     }
 }
 
-void Parser::primaryexp() {
-    prefixexp();
+void Parser::primaryexp(ExpDesc &v) {
+    prefixexp(v);
     while (true) {
         switch (token_.first) {
             case '[': {
                 next();
-                expr();
+                expr(v);
                 if (token_.first != ']') throw ParserError("[] not match!");
                 break;
             }
@@ -157,9 +167,14 @@ void Parser::body() {}
 
 void Parser::constructor() {}
 
-void Parser::simpleexp() {
+void Parser::simpleexp(ExpDesc &v) {
     switch (token_.first) {
-        case Lex::NUMBER:
+        case Lex::NUMBER: {
+            initExp(v, ExpKind::VKNUM, 0);
+            v.u.nval = stod(token_.second);
+            next();
+            break;
+        }
         case Lex::STRING:
         case Lex::NIL:
         case Lex::TRUE:
@@ -175,25 +190,46 @@ void Parser::simpleexp() {
             body();
             break;
         }
-        default: { primaryexp(); }
+        default: { primaryexp(v); }
     }
 }
 
-BinOpr Parser::subexpr(int limit) {
+BinOpr Parser::subexpr(ExpDesc &v, int limit) {
     UnOpr uop = getunopr(token_.first);
     if (uop != OPR_NOUNOPR) {
         next();
-        subexpr(UNARY_PRIORITY);
+        subexpr(v, UNARY_PRIORITY);
         // TODO prefix
+        switch (uop) {
+            case OPR_MINUS:
+                v.u.nval *= -1;
+                break;
+            default:
+                break;
+        }
     } else {
-        simpleexp();
+        simpleexp(v);
     }
 
     BinOpr bop = getbinopr(token_.first);
     while (bop != OPR_NOBINOPR && priority[bop].first > limit) {
         next();
         // TODO infix
-        auto nextop = subexpr(priority[bop].second);
+        ExpDesc v2;
+        auto nextop = subexpr(v2, priority[bop].second);
+        switch (bop) {
+            case OPR_ADD:
+                v.u.nval += v2.u.nval;
+                break;
+            case OPR_MUL:
+                v.u.nval *= v2.u.nval;
+                break;
+            case OPR_SUB:
+                v.u.nval -= v2.u.nval;
+                break;
+            default:
+                break;
+        }
         // TODO postfix
         bop = nextop;
     }
@@ -229,9 +265,10 @@ void Parser::ifstat() {
 }
 
 void Parser::block() {
-    enterBlock();
+    Block bloc;
+    currentFunc()->enterBlock(bloc);
     chunk();
-    leaveBlock();
+    currentFunc()->leaveBlock();
 }
 
 void Parser::whilestat() {
@@ -262,7 +299,10 @@ void Parser::funcstat() {
     body();
 }
 
-void Parser::exprstat() { primaryexp(); }
+void Parser::exprstat() {
+    ExpDesc v;
+    primaryexp(v);
+}
 
 void Parser::localfunc() {
     next();
@@ -330,19 +370,26 @@ bool Parser::statement() {
     }
 }
 
-void Parser::enterBlock() {
-}
-
-void Parser::leaveBlock() {
-}
-
 int Parser::parse() {
     next();
-
+    openFunc();
     block();
     if (token_.first != Lex::EOS) throw ParserError("additional text eof");
+    closeFunc();
     return 0;
 }
 
 void Parser::next() { token_ = lex_.nextToken(); }
+
+void Parser::openFunc() {
+    fslist_.emplace_front(std::make_unique<FuncState>());
+}
+
+void Parser::closeFunc() { fslist_.pop_front(); }
+
+FuncState *Parser::currentFunc() {
+    if (fslist_.empty()) return nullptr;
+    return fslist_.front().get();
+}
+
 } /* lo */
