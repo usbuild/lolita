@@ -1,21 +1,22 @@
 #pragma once
+#include <stdint.h>
 namespace lo {
 enum OpCode {
     /*----------------------------------------------------------------------
     name		args	description
     ------------------------------------------------------------------------*/
-    OP_MOVE, /*	A B	R(A) := R(B)					*/
-    OP_LOADK, /*	A Bx	R(A) := Kst(Bx) */
+    OP_MOVE,     /*	A B	R(A) := R(B)					*/
+    OP_LOADK,    /*	A Bx	R(A) := Kst(Bx) */
     OP_LOADBOOL, /*	A B C	R(A) := (Bool)B; if (C) pc++ */
-    OP_LOADNIL, /*	A B	R(A) := ... := R(B) := nil */
+    OP_LOADNIL,  /*	A B	R(A) := ... := R(B) := nil */
     OP_GETUPVAL, /*	A B	R(A) := UpValue[B] */
 
     OP_GETGLOBAL, /*	A Bx	R(A) := Gbl[Kst(Bx)] */
-    OP_GETTABLE, /*	A B C	R(A) := R(B)[RK(C)] */
+    OP_GETTABLE,  /*	A B C	R(A) := R(B)[RK(C)] */
 
     OP_SETGLOBAL, /*	A Bx	Gbl[Kst(Bx)] := R(A) */
-    OP_SETUPVAL, /*	A B	UpValue[B] := R(A) */
-    OP_SETTABLE, /*	A B C	R(A)[RK(B)] := RK(C) */
+    OP_SETUPVAL,  /*	A B	UpValue[B] := R(A) */
+    OP_SETTABLE,  /*	A B C	R(A)[RK(B)] := RK(C) */
 
     OP_NEWTABLE, /*	A B C	R(A) := {} (size = B,C) */
 
@@ -67,5 +68,7 @@ enum OpCode {
     OP_VARARG /*	A B	R(A), R(A+1), ..., R(A+B-1) = vararg
                  */
 };
+
 typedef uint32_t Instruction;
+
 } /* lo */

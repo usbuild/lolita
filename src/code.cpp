@@ -1,4 +1,5 @@
 #include "code.hpp"
+#include "parser.hpp"
 namespace lo {
 void FuncState::enterBlock(Block &bl) { bllist_.emplace_front(&bl); }
 
@@ -14,6 +15,16 @@ int FuncState::codeABx(OpCode inst, int a, int b) {
     return code_.size() - 1;
 }
 
+void FuncState::freeVar(int reg) {
+    assert(reg == freevar_);
+    freevar_--;
+}
+
+int FuncState::reserveVar(int count) {
+    freevar_ += count;
+    return freevar_ - count;
+}
+
 void FuncState::dischargeVars(ExpDesc &e) {
     switch (e.k) {
         case ExpKind::VLOCAL: {
@@ -22,7 +33,14 @@ void FuncState::dischargeVars(ExpDesc &e) {
         }
         case ExpKind::VUPVAL: {
             e.info = codeABC(OP_GETUPVAL, 0, e.info, 0);
+            e.k = ExpKind::VRELOCABLE;
             break;
+        }
+        case ExpKind::VGLOBAL: {
+            e.info = codeABx(OP_GETGLOBAL, 0, e.info);
+            e.k = ExpKind::VRELOCABLE;
+        }
+        case ExpKind::VINDEXED: {
         }
         default:
             break;
