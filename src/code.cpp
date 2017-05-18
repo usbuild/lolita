@@ -15,7 +15,7 @@ int FuncState::codeABx(OpCode inst, int a, int b) {
     return code_.size() - 1;
 }
 
-void FuncState::freeVar(int reg) {
+void FuncState::freeReg(int reg) {
     assert(reg == freevar_);
     freevar_--;
 }
@@ -27,20 +27,24 @@ int FuncState::reserveVar(int count) {
 
 void FuncState::dischargeVars(ExpDesc &e) {
     switch (e.k) {
-        case ExpKind::VLOCAL: {
-            e.k = ExpKind::VNONRELOC;
+        case ExpKind::LOCAL: {
+            e.k = ExpKind::NONRELOC;
             break;
         }
-        case ExpKind::VUPVAL: {
+        case ExpKind::UPVAL: {
             e.info = codeABC(OP_GETUPVAL, 0, e.info, 0);
-            e.k = ExpKind::VRELOCABLE;
+            e.k = ExpKind::RELOCABLE;
             break;
         }
-        case ExpKind::VGLOBAL: {
+        case ExpKind::GLOBAL: {
             e.info = codeABx(OP_GETGLOBAL, 0, e.info);
-            e.k = ExpKind::VRELOCABLE;
+            e.k = ExpKind::RELOCABLE;
         }
-        case ExpKind::VINDEXED: {
+        case ExpKind::INDEXED: {
+            freeReg(e.aux);
+            freeReg(e.info);
+            e.info = codeABC(OP_GETTABLE, 0, e.info, e.aux);
+            e.k = ExpKind::RELOCABLE;
         }
         default:
             break;

@@ -29,50 +29,50 @@ static bool blockFollow(int token) {
 static UnOpr getunopr(int op) {
     switch (op) {
         case Lex::NOT:
-            return OPR_NOT;
+            return UnOpr::NOT;
         case '-':
-            return OPR_MINUS;
+            return UnOpr::MINUS;
         case '#':
-            return OPR_LEN;
+            return UnOpr::LEN;
         default:
-            return OPR_NOUNOPR;
+            return UnOpr::NOUNOPR;
     }
 }
 
 static BinOpr getbinopr(int op) {
     switch (op) {
         case '+':
-            return OPR_ADD;
+            return BinOpr::ADD;
         case '-':
-            return OPR_SUB;
+            return BinOpr::SUB;
         case '*':
-            return OPR_MUL;
+            return BinOpr::MUL;
         case '/':
-            return OPR_DIV;
+            return BinOpr::DIV;
         case '%':
-            return OPR_MOD;
+            return BinOpr::MOD;
         case '^':
-            return OPR_POW;
+            return BinOpr::POW;
         case Lex::CONCAT:
-            return OPR_CONCAT;
+            return BinOpr::CONCAT;
         case Lex::NE:
-            return OPR_NE;
+            return BinOpr::NE;
         case Lex::EQ:
-            return OPR_EQ;
+            return BinOpr::EQ;
         case '<':
-            return OPR_LT;
+            return BinOpr::LT;
         case Lex::LE:
-            return OPR_LE;
+            return BinOpr::LE;
         case '>':
-            return OPR_GT;
+            return BinOpr::GT;
         case Lex::GE:
-            return OPR_GE;
+            return BinOpr::GE;
         case Lex::AND:
-            return OPR_AND;
+            return BinOpr::AND;
         case Lex::OR:
-            return OPR_OR;
+            return BinOpr::OR;
         default:
-            return OPR_NOBINOPR;
+            return BinOpr::NOBINOPR;
     }
 }
 
@@ -170,7 +170,7 @@ void Parser::constructor() {}
 void Parser::simpleexp(ExpDesc &v) {
     switch (token_.first) {
         case Lex::NUMBER: {
-            initExp(v, ExpKind::VKNUM, 0);
+            initExp(v, ExpKind::KNUM, 0);
             v.nval = stod(token_.second);
             next();
             break;
@@ -196,12 +196,12 @@ void Parser::simpleexp(ExpDesc &v) {
 
 BinOpr Parser::subexpr(ExpDesc &v, int limit) {
     UnOpr uop = getunopr(token_.first);
-    if (uop != OPR_NOUNOPR) {
+    if (uop != UnOpr::NOUNOPR) {
         next();
         subexpr(v, UNARY_PRIORITY);
         // TODO prefix
         switch (uop) {
-            case OPR_MINUS:
+            case UnOpr::MINUS:
                 v.nval *= -1;
                 break;
             default:
@@ -212,19 +212,24 @@ BinOpr Parser::subexpr(ExpDesc &v, int limit) {
     }
 
     BinOpr bop = getbinopr(token_.first);
-    while (bop != OPR_NOBINOPR && priority[bop].first > limit) {
+    while (
+        bop != BinOpr::NOBINOPR &&
+        priority[static_cast<std::underlying_type<BinOpr>::type>(bop)].first >
+            limit) {
         next();
         // TODO infix
         ExpDesc v2;
-        auto nextop = subexpr(v2, priority[bop].second);
+        auto nextop = subexpr(
+            v2, priority[static_cast<std::underlying_type<BinOpr>::type>(bop)]
+                    .second);
         switch (bop) {
-            case OPR_ADD:
+            case BinOpr::ADD:
                 v.nval += v2.nval;
                 break;
-            case OPR_MUL:
+            case BinOpr::MUL:
                 v.nval *= v2.nval;
                 break;
-            case OPR_SUB:
+            case BinOpr::SUB:
                 v.nval -= v2.nval;
                 break;
             default:
