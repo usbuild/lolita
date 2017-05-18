@@ -79,7 +79,7 @@ static BinOpr getbinopr(int op) {
 void initExp(ExpDesc &e, ExpKind k, int i) {
     e.f = e.t = NO_JUMP;
     e.k = k;
-    e.u.s.info = i;
+    e.info = i;
 }
 
 static const std::pair<int, int> priority[] = {
@@ -171,7 +171,7 @@ void Parser::simpleexp(ExpDesc &v) {
     switch (token_.first) {
         case Lex::NUMBER: {
             initExp(v, ExpKind::VKNUM, 0);
-            v.u.nval = stod(token_.second);
+            v.nval = stod(token_.second);
             next();
             break;
         }
@@ -202,7 +202,7 @@ BinOpr Parser::subexpr(ExpDesc &v, int limit) {
         // TODO prefix
         switch (uop) {
             case OPR_MINUS:
-                v.u.nval *= -1;
+                v.nval *= -1;
                 break;
             default:
                 break;
@@ -219,13 +219,13 @@ BinOpr Parser::subexpr(ExpDesc &v, int limit) {
         auto nextop = subexpr(v2, priority[bop].second);
         switch (bop) {
             case OPR_ADD:
-                v.u.nval += v2.u.nval;
+                v.nval += v2.nval;
                 break;
             case OPR_MUL:
-                v.u.nval *= v2.u.nval;
+                v.nval *= v2.nval;
                 break;
             case OPR_SUB:
-                v.u.nval -= v2.u.nval;
+                v.nval -= v2.nval;
                 break;
             default:
                 break;
@@ -374,12 +374,18 @@ int Parser::parse() {
     next();
     openFunc();
     block();
-    if (token_.first != Lex::EOS) throw ParserError("additional text eof");
+    EXPECT(Lex::EOS);
     closeFunc();
     return 0;
 }
 
 void Parser::next() { token_ = lex_.nextToken(); }
+
+void Parser::matchAndNext(int token) {
+    if (token_.first == token) {
+        next();
+    }
+}
 
 void Parser::openFunc() {
     fslist_.emplace_front(std::make_unique<FuncState>());

@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <forward_list>
 #include <memory>
+#include "opcodes.hpp"
 #include "feeder.hpp"
 #include "lex.hpp"
 #include "noncopyable.hpp"
@@ -34,9 +35,9 @@ struct ExpDesc {
     union {
         struct {
             int info, aux;
-        } s;
+        };
         double nval;
-    } u;
+    };
     int t; /* patch list of `exit when true' */
     int f; /* patch list of `exit when false' */
 };
@@ -70,6 +71,16 @@ struct FuncState {
     void enterBlock(Block &bl);
     void leaveBlock();
     Block *currentBl() { return bllist_.front(); }
+
+    int codeABC(OpCode inst, int a, int b, int c);
+
+    int codeABx(OpCode inst, int a, int b);
+
+    void dischargeVars(ExpDesc &e);
+
+
+public:
+    std::vector<Instruction> code_;
     std::forward_list<Block *> bllist_;
 };
 
@@ -82,6 +93,8 @@ class Parser {
     void block();
     void chunk();
     void next();
+    void matchAndNext(int token);
+    void assertToken(int token);
     bool statement();
     void condThen();
     void condDo();
