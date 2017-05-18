@@ -20,9 +20,17 @@ void FuncState::freeReg(int reg) {
     freevar_--;
 }
 
-int FuncState::reserveVar(int count) {
+int FuncState::reserveRegs(int count) {
     freevar_ += count;
     return freevar_ - count;
+}
+
+void FuncState::setOneRet(ExpDesc &e) {
+    if (e.k == ExpKind::CALL) {
+        e.k = ExpKind::NONRELOC;
+        // e.info =  target register
+    } else if (e.k == ExpKind::VARARG) {
+    }
 }
 
 void FuncState::dischargeVars(ExpDesc &e) {
@@ -45,6 +53,11 @@ void FuncState::dischargeVars(ExpDesc &e) {
             freeReg(e.info);
             e.info = codeABC(OP_GETTABLE, 0, e.info, e.aux);
             e.k = ExpKind::RELOCABLE;
+        }
+        case ExpKind::CALL:
+        case ExpKind::VARARG: {
+            setOneRet(e);
+            break;
         }
         default:
             break;

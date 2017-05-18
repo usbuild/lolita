@@ -316,9 +316,13 @@ void Parser::localfunc() {
     body();
 }
 
+void Parser::newLocalVar() {}
+
 void Parser::localstat() {
     next();
     if (token_.first != Lex::NAME) throw ParserError("name for local expected");
+    if (matchAndNext('=')) {
+    }
     next();
     // TODO multi
 }
@@ -386,10 +390,12 @@ int Parser::parse() {
 
 void Parser::next() { token_ = lex_.nextToken(); }
 
-void Parser::matchAndNext(int token) {
+bool Parser::matchAndNext(int token) {
     if (token_.first == token) {
         next();
+        return true;
     }
+    return false;
 }
 
 void Parser::openFunc() {

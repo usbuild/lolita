@@ -68,7 +68,9 @@ struct FuncState {
 
     void freeReg(int reg);
 
-    int reserveVar(int count);
+    int reserveRegs(int count);
+
+    void setOneRet(ExpDesc &e);
 
    public:
     std::vector<Instruction> code_;

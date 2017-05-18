@@ -26,12 +26,14 @@ class Parser {
     void block();
     void chunk();
     void next();
-    void matchAndNext(int token);
+    bool matchAndNext(int token);
     void assertToken(int token);
     bool statement();
     void condThen();
     void condDo();
     void cond();
+
+    void newLocalVar();
 
     void expr(ExpDesc &v);
     BinOpr subexpr(ExpDesc &v, int limit);
